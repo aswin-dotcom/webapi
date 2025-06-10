@@ -5,7 +5,7 @@ using webapi.Models.DTO;
 
 namespace webapi.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/LearningAPI")]
     [ApiController]
     public class LearningAPIController:ControllerBase
     {
@@ -14,6 +14,11 @@ namespace webapi.Controllers
             {
                 return RecordStore.records;
             }
+           [HttpGet("{id:int}")]
+           public RecordDTO GetRecord(int id)
+           {
+                return RecordStore.records.FirstOrDefault(r => r.Id == id);
+           }
 
 
 
