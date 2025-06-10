@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using webapi.Data;
 using webapi.Models;
 using webapi.Models.DTO;
 
@@ -11,12 +12,7 @@ namespace webapi.Controllers
             [HttpGet]
             public IEnumerable<RecordDTO> GetRecords()
             {
-                return new List<RecordDTO>
-                {
-                    new RecordDTO { Id = 1, Name = "Record 1" },
-                    new RecordDTO { Id = 2, Name = "Record 2" },
-                    new RecordDTO { Id = 3, Name = "Record 3" }
-                };
+                return RecordStore.records;
             }
 
 
