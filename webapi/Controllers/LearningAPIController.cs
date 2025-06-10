@@ -1,20 +1,21 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using webapi.Models;
+using webapi.Models.DTO;
 
 namespace webapi.Controllers
 {
-    [Route("api/LearningAPI")]
+    [Route("api/[controller]")]
     [ApiController]
     public class LearningAPIController:ControllerBase
     {
             [HttpGet]
-            public IEnumerable<Record> GetRecords()
+            public IEnumerable<RecordDTO> GetRecords()
             {
-                return new List<Record>
+                return new List<RecordDTO>
                 {
-                    new Record { Id = 1, Name = "Record 1" },
-                    new Record { Id = 2, Name = "Record 2" },
-                    new Record { Id = 3, Name = "Record 3" }
+                    new RecordDTO { Id = 1, Name = "Record 1" },
+                    new RecordDTO { Id = 2, Name = "Record 2" },
+                    new RecordDTO { Id = 3, Name = "Record 3" }
                 };
             }
 
