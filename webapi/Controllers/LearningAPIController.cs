@@ -17,7 +17,7 @@ namespace webapi.Controllers
             }
 
 
-           [HttpGet("{id:int}")]
+           [HttpGet("{id:int}",Name = "GetRecords")]
 
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -40,6 +40,9 @@ namespace webapi.Controllers
             return Ok(record);
            }
         [HttpPost]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<RecordDTO> PostRecord ([FromBody]RecordDTO record)
         {
             if(record == null)
@@ -52,7 +55,7 @@ namespace webapi.Controllers
             }
             record.Id = RecordStore.records.OrderByDescending(u => u.Id).FirstOrDefault().Id+1;
             RecordStore.records.Add(record);
-            return Ok(record);
+            return CreatedAtRoute("GetRecords", new {id = record.Id },record);
             
         }
 
