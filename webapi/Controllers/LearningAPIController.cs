@@ -15,6 +15,8 @@ namespace webapi.Controllers
             {
                 return Ok(RecordStore.records);
             }
+
+
            [HttpGet("{id:int}")]
 
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -37,8 +39,22 @@ namespace webapi.Controllers
 
             return Ok(record);
            }
-
-
+        [HttpPost]
+        public ActionResult<RecordDTO> PostRecord ([FromBody]RecordDTO record)
+        {
+            if(record == null)
+            {
+                return BadRequest();
+            }
+            if(record.Id > 0)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError);
+            }
+            record.Id = RecordStore.records.OrderByDescending(u => u.Id).FirstOrDefault().Id+1;
+            RecordStore.records.Add(record);
+            return Ok(record);
+            
+        }
 
     }
 }
