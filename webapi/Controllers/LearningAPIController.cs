@@ -10,14 +10,23 @@ namespace webapi.Controllers
     public class LearningAPIController:ControllerBase
     {
             [HttpGet]
-            public IEnumerable<RecordDTO> GetRecords()
+            public ActionResult<IEnumerable<RecordDTO>> GetRecords()
             {
-                return RecordStore.records;
+                return Ok(RecordStore.records);
             }
            [HttpGet("{id:int}")]
-           public RecordDTO GetRecord(int id)
+           public ActionResult<RecordDTO> GetRecord(int id)
            {
-                return RecordStore.records.FirstOrDefault(r => r.Id == id);
+            if (id == 0) { 
+                return BadRequest();
+            }
+             var record  =  RecordStore.records.FirstOrDefault(r => r.Id == id);
+            if (record == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(record);
            }
 
 
