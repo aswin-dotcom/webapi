@@ -44,8 +44,14 @@ namespace webapi.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<RecordDTO> PostRecord ([FromBody]RecordDTO record)
+
         {
-            if(record == null)
+            if(RecordStore.records.FirstOrDefault(u=>u.Name.ToLower()==record.Name.ToLower()) != null)
+            {
+                ModelState.AddModelError("CustomError", "Record already exists!");
+                return BadRequest(ModelState);
+            }
+            if (record == null)
             {
                 return BadRequest();
             }
@@ -58,6 +64,8 @@ namespace webapi.Controllers
             return CreatedAtRoute("GetRecords", new {id = record.Id },record);
             
         }
+
+
 
     }
 }
