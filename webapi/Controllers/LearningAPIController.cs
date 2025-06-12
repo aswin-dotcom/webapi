@@ -10,10 +10,17 @@ namespace webapi.Controllers
     [ApiController]
     public class LearningAPIController:ControllerBase
     {
-            [HttpGet]
+        private readonly ILogger<LearningAPIController> _logger;
+        public LearningAPIController(ILogger<LearningAPIController> logger)
+        {
+                _logger = logger;
+        }
+
+        [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<IEnumerable<RecordDTO>> GetRecords()
             {
+            _logger.LogInformation("Records getted");
                 return Ok(RecordStore.records);
             }
 

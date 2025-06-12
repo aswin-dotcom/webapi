@@ -6,6 +6,8 @@ builder.Services.AddControllers().AddNewtonsoftJson();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 //builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen();
+builder.Logging.ClearProviders();
+////builder.Logging.AddConsole();
 
 var app = builder.Build();
 
