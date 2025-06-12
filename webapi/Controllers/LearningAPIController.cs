@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.JsonPatch;
+using Microsoft.AspNetCore.Mvc;
 using webapi.Data;
 using webapi.Models;
 using webapi.Models.DTO;
@@ -82,8 +83,50 @@ namespace webapi.Controllers
             RecordStore.records.Remove(record);
             return NoContent();
         }
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [HttpPut("{id:int}", Name = "UpdateRecord")]
+        public IActionResult UpdateRecord(int id, [FromBody] RecordDTO record)
+        {
+            if (record == null || id != record.Id)
+            {
+                return BadRequest();
+            }
+            var existingRecord = RecordStore.records.FirstOrDefault(u => u.Id == id);
+            if (existingRecord == null)
+            {
+                return NotFound();
+            }
+            existingRecord.Name = record.Name;
+            existingRecord.City = record.City;
+            existingRecord.Standard = record.Standard;
+            return NoContent();
+        }
 
+        [HttpPatch("{id:int}", Name = "UpdatePartialRecord")]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public IActionResult UpdateRecordProperty(int id , JsonPatchDocument<RecordDTO> jsonPatchDocument)
+        {
+            if(id==0 || jsonPatchDocument == null)
+            {
+                return BadRequest();
+            }
 
+            var record =  RecordStore.records.FirstOrDefault(u => u.Id == id);
+            if(record == null)
+            {
+                return NotFound();
+            }
+            jsonPatchDocument.ApplyTo(record, ModelState);
+            if(!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            return NoContent();
+        }
 
     }
 }

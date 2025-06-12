@@ -9,5 +9,9 @@ namespace webapi.Models.DTO
         [Required]
         [MaxLength(10)]
         public string Name { get; set; }
+
+        public string Standard { get; set; }
+
+        public string City { get; set; }
     }
 }
