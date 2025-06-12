@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using webapi.Data;
+using webapi.Loging;
 using webapi.Models;
 using webapi.Models.DTO;
 
@@ -10,8 +11,8 @@ namespace webapi.Controllers
     [ApiController]
     public class LearningAPIController:ControllerBase
     {
-        private readonly ILogger<LearningAPIController> _logger;
-        public LearningAPIController(ILogger<LearningAPIController> logger)
+        private readonly ILogging _logger;
+        public LearningAPIController(ILogging logger)
         {
                 _logger = logger;
         }
@@ -20,7 +21,7 @@ namespace webapi.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<IEnumerable<RecordDTO>> GetRecords()
             {
-            _logger.LogInformation("Records getted");
+            _logger.Log("Records got","");
                 return Ok(RecordStore.records);
             }
 
@@ -36,7 +37,8 @@ namespace webapi.Controllers
         //[ProducesResponseType(404)]
         public ActionResult<RecordDTO> GetRecord(int id)
            {
-            if (id == 0) { 
+            if (id == 0) {
+                _logger.Log("Invalid number", "error");
                 return BadRequest();
             }
              var record  =  RecordStore.records.FirstOrDefault(r => r.Id == id);
