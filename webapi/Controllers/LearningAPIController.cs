@@ -51,7 +51,7 @@ namespace webapi.Controllers
                 ModelState.AddModelError("CustomError", "Record already exists!");
                 return BadRequest(ModelState);
             }
-            if (record == null)
+            if(record == null)
             {
                 return BadRequest();
             }
@@ -63,6 +63,24 @@ namespace webapi.Controllers
             RecordStore.records.Add(record);
             return CreatedAtRoute("GetRecords", new {id = record.Id },record);
             
+        }
+        [HttpDelete("{id:int}", Name = "DeleteRecord")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public IActionResult DeleteRecord(int id)
+        {
+            if (id == 0)
+            {
+                return BadRequest();
+            }
+            var record = RecordStore.records.FirstOrDefault(u => u.Id == id);
+            if (record == null)
+            {
+                return NotFound();
+            }
+            RecordStore.records.Remove(record);
+            return NoContent();
         }
 
 
