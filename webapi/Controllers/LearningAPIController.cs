@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.JsonPatch;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Xml.Linq;
@@ -15,10 +16,12 @@ namespace webapi.Controllers
     {
         private readonly ILogging _logger;
         private readonly ApplicationDbContext _db;
-        public LearningAPIController(ILogging logger,ApplicationDbContext db)
+        private readonly IMapper _mapper;
+        public LearningAPIController(ILogging logger,ApplicationDbContext db,IMapper mapper)
         {
-                _logger = logger;
+            _logger = logger;
             _db = db;
+            _mapper = mapper;
         }
 
         [HttpGet]
@@ -26,7 +29,8 @@ namespace webapi.Controllers
         public async Task <ActionResult<IEnumerable<RecordDTO>>> GetRecords()
             {
             _logger.Log("Records got","");
-                return Ok(await _db.Records.ToListAsync());
+            IEnumerable<Record> recordlist = await _db.Records.ToListAsync();
+            return Ok(_mapper.Map<RecordDTO>(recordlist));
             }
 
 
@@ -48,7 +52,7 @@ namespace webapi.Controllers
                 return NotFound();
             }
 
-            return Ok(record);
+            return Ok(_mapper.Map<RecordDTO>(record));
            }
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
@@ -68,15 +72,15 @@ namespace webapi.Controllers
             }
 
             record.Id =  _db.Records.OrderByDescending(u => u.Id).FirstOrDefault().Id+1;
-
-            Record rec = new Record()
-            {
-                Id = record.Id,
-                Name = record.Name,
-                Standard = record.Standard,
-                City = record.City,
-                percentage = record.percentage
-            };
+            var rec   =  _mapper.Map<Record>(record);
+            //Record rec = new Record()
+            //{
+            //    Id = record.Id,
+            //    Name = record.Name,
+            //    Standard = record.Standard,
+            //    City = record.City,
+            //    percentage = record.percentage
+            //};
 
 
            await  _db.Records.AddAsync(rec);
@@ -113,15 +117,16 @@ namespace webapi.Controllers
             {
                 return BadRequest();
             }
-            var existingRecord = await  _db.Records.FirstOrDefaultAsync(u => u.Id == id);
-            if (existingRecord == null)
-            {
-                return NotFound();
-            }
-            existingRecord.Name = record.Name;
-            existingRecord.City = record.City;
-            existingRecord.Standard = record.Standard;
-            _db.Records.Update(existingRecord);
+            //var existingRecord = await  _db.Records.FirstOrDefaultAsync(u => u.Id == id);
+            //if (existingRecord == null)
+            //{
+            //    return NotFound();
+            //}
+            var updaterecord = _mapper.Map<Record>(record);
+            //existingRecord.Name = record.Name;
+            //existingRecord.City = record.City;
+            //existingRecord.Standard = record.Standard;
+            _db.Records.Update(updaterecord);
             await _db.SaveChangesAsync();
             return NoContent();
         }
@@ -142,29 +147,32 @@ namespace webapi.Controllers
             {
                 return NotFound();
             }
-            RecordDTO temp = new RecordDTO()
-            {
-                Id =  record.Id,
-                Name = record.Name,
-                Standard = record.Standard,
-                City = record.City,
-                percentage =  record.percentage
+            var temp = _mapper.Map<RecordDTO>(record);
 
-            };
+            //RecordDTO temp = new RecordDTO()
+            //{
+            //    Id =  record.Id,
+            //    Name = record.Name,
+            //    Standard = record.Standard,
+            //    City = record.City,
+            //    percentage =  record.percentage
+
+            //};
 
             jsonPatchDocument.ApplyTo(temp, ModelState);
             if(!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-            Record patch = new() { 
-                Id  = temp.Id,
-                Name = temp.Name,
-                Standard = temp.Standard,
-                City= temp.City,
-                percentage =  temp.percentage
-                
-            };
+            //Record patch = new() { 
+            //    Id  = temp.Id,
+            //    Name = temp.Name,
+            //    Standard = temp.Standard,
+            //    City= temp.City,
+            //    percentage =  temp.percentage
+
+            //};
+            var patch = _mapper.Map<Record>(temp);
 
             _db.Records.Update(patch);
           await _db.SaveChangesAsync();
