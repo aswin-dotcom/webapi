@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using System.Xml.Linq;
 using webapi.Data;
 using webapi.Loging;
 using webapi.Models;
@@ -12,9 +13,11 @@ namespace webapi.Controllers
     public class LearningAPIController:ControllerBase
     {
         private readonly ILogging _logger;
-        public LearningAPIController(ILogging logger)
+        private readonly ApplicationDbContext _db;
+        public LearningAPIController(ILogging logger,ApplicationDbContext db)
         {
                 _logger = logger;
+            _db = db;
         }
 
         [HttpGet]
@@ -22,7 +25,7 @@ namespace webapi.Controllers
         public ActionResult<IEnumerable<RecordDTO>> GetRecords()
             {
             _logger.Log("Records got","");
-                return Ok(RecordStore.records);
+                return Ok(_db.Records.ToList());
             }
 
 
@@ -32,16 +35,13 @@ namespace webapi.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
 
-        //[ProducesResponseType(200,Type =typeof(RecordDTO))]
-        //[ProducesResponseType(400)]
-        //[ProducesResponseType(404)]
         public ActionResult<RecordDTO> GetRecord(int id)
            {
             if (id == 0) {
                 _logger.Log("Invalid number", "error");
                 return BadRequest();
             }
-             var record  =  RecordStore.records.FirstOrDefault(r => r.Id == id);
+             var record  = _db.Records.FirstOrDefault(r => r.Id == id);
             if (record == null)
             {
                 return NotFound();
@@ -56,7 +56,7 @@ namespace webapi.Controllers
         public ActionResult<RecordDTO> PostRecord ([FromBody]RecordDTO record)
 
         {
-            if(RecordStore.records.FirstOrDefault(u=>u.Name.ToLower()==record.Name.ToLower()) != null)
+            if(_db.Records.FirstOrDefault(u=>u.Name.ToLower()==record.Name.ToLower()) != null)
             {
                 ModelState.AddModelError("CustomError", "Record already exists!");
                 return BadRequest(ModelState);
@@ -69,8 +69,18 @@ namespace webapi.Controllers
             {
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
-            record.Id = RecordStore.records.OrderByDescending(u => u.Id).FirstOrDefault().Id+1;
-            RecordStore.records.Add(record);
+            //record.Id = RecordStore.records.OrderByDescending(u => u.Id).FirstOrDefault().Id+1; 
+
+            Record rec = new Record()
+            {
+                Name = record.Name,
+                Standard =  record.Standard,
+                City = record.City,
+            };
+
+
+            _db.Records.Add(rec);
+            _db.SaveChanges();
             return CreatedAtRoute("GetRecords", new {id = record.Id },record);
             
         }
@@ -84,12 +94,13 @@ namespace webapi.Controllers
             {
                 return BadRequest();
             }
-            var record = RecordStore.records.FirstOrDefault(u => u.Id == id);
+            var record = _db.Records.FirstOrDefault(u => u.Id == id);
             if (record == null)
             {
                 return NotFound();
             }
-            RecordStore.records.Remove(record);
+            _db.Records.Remove(record);
+            _db.SaveChanges();
             return NoContent();
         }
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -102,7 +113,7 @@ namespace webapi.Controllers
             {
                 return BadRequest();
             }
-            var existingRecord = RecordStore.records.FirstOrDefault(u => u.Id == id);
+            var existingRecord = _db.Records.FirstOrDefault(u => u.Id == id);
             if (existingRecord == null)
             {
                 return NotFound();
@@ -110,6 +121,8 @@ namespace webapi.Controllers
             existingRecord.Name = record.Name;
             existingRecord.City = record.City;
             existingRecord.Standard = record.Standard;
+            _db.Records.Update(existingRecord);
+            _db.SaveChanges();
             return NoContent();
         }
 
@@ -124,16 +137,34 @@ namespace webapi.Controllers
                 return BadRequest();
             }
 
-            var record =  RecordStore.records.FirstOrDefault(u => u.Id == id);
+            var record =  _db.Records.FirstOrDefault(u => u.Id == id);
             if(record == null)
             {
                 return NotFound();
             }
-            jsonPatchDocument.ApplyTo(record, ModelState);
+            RecordDTO temp = new RecordDTO()
+            {
+                Name = record.Name,
+                Standard = record.Standard,
+                City = record.City,
+
+            };
+
+            jsonPatchDocument.ApplyTo(temp, ModelState);
             if(!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
+            Record patch = new() { 
+                Name = temp.Name,
+                Standard = temp.Standard,
+                City= temp.City,
+                
+            };
+
+            _db.Records.Update(patch);
+            _db.SaveChanges();
+
             return NoContent();
         }
 
