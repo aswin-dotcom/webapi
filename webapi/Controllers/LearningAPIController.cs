@@ -23,10 +23,10 @@ namespace webapi.Controllers
 
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public ActionResult<IEnumerable<RecordDTO>> GetRecords()
+        public async Task <ActionResult<IEnumerable<RecordDTO>>> GetRecords()
             {
             _logger.Log("Records got","");
-                return Ok(_db.Records.ToList());
+                return Ok(await _db.Records.ToListAsync());
             }
 
 
@@ -36,13 +36,13 @@ namespace webapi.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
 
-        public ActionResult<RecordDTO> GetRecord(int id)
+        public async Task<ActionResult<RecordDTO>> GetRecord(int id)
            {
             if (id == 0) {
                 _logger.Log("Invalid number", "error");
                 return BadRequest();
             }
-             var record  = _db.Records.FirstOrDefault(r => r.Id == id);
+             var record  = await  _db.Records.FirstOrDefaultAsync(r => r.Id == id);
             if (record == null)
             {
                 return NotFound();
@@ -54,10 +54,10 @@ namespace webapi.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<RecordDTO> PostRecord ([FromBody]RecordDTO record)
+        public async Task<ActionResult<RecordDTO>> PostRecord ([FromBody]RecordDTO record)
 
         {
-            if(_db.Records.FirstOrDefault(u=>u.Name.ToLower()==record.Name.ToLower()) != null)
+            if(await _db.Records.FirstOrDefaultAsync(u=>u.Name.ToLower()==record.Name.ToLower()) != null)
             {
                 ModelState.AddModelError("CustomError", "Record already exists!");
                 return BadRequest(ModelState);
@@ -67,7 +67,7 @@ namespace webapi.Controllers
                 return BadRequest();
             }
 
-            record.Id = _db.Records.OrderByDescending(u => u.Id).FirstOrDefault().Id+1;
+            record.Id =  _db.Records.OrderByDescending(u => u.Id).FirstOrDefault().Id+1;
 
             Record rec = new Record()
             {
@@ -79,8 +79,8 @@ namespace webapi.Controllers
             };
 
 
-            _db.Records.Add(rec);
-            _db.SaveChanges();
+           await  _db.Records.AddAsync(rec);
+          await   _db.SaveChangesAsync();
             return CreatedAtRoute("GetRecords", new {id = record.Id },record);
             
         }
@@ -88,32 +88,32 @@ namespace webapi.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult DeleteRecord(int id)
+        public async Task<IActionResult> DeleteRecord(int id)
         {
             if (id == 0)
             {
                 return BadRequest();
             }
-            var record = _db.Records.FirstOrDefault(u => u.Id == id);
+            var record =await  _db.Records.FirstOrDefaultAsync(u => u.Id == id);
             if (record == null)
             {
                 return NotFound();
             }
-            _db.Records.Remove(record);
-            _db.SaveChanges();
+             _db.Records.Remove(record);
+            await  _db.SaveChangesAsync();
             return NoContent();
         }
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [HttpPut("{id:int}", Name = "UpdateRecord")]
-        public IActionResult UpdateRecord(int id, [FromBody] RecordDTO record)
+        public async Task<IActionResult> UpdateRecord(int id, [FromBody] RecordDTO record)
         {
             if (record == null || id != record.Id)
             {
                 return BadRequest();
             }
-            var existingRecord = _db.Records.FirstOrDefault(u => u.Id == id);
+            var existingRecord = await  _db.Records.FirstOrDefaultAsync(u => u.Id == id);
             if (existingRecord == null)
             {
                 return NotFound();
@@ -122,7 +122,7 @@ namespace webapi.Controllers
             existingRecord.City = record.City;
             existingRecord.Standard = record.Standard;
             _db.Records.Update(existingRecord);
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
             return NoContent();
         }
 
@@ -130,14 +130,14 @@ namespace webapi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public IActionResult UpdateRecordProperty(int id , JsonPatchDocument<RecordDTO> jsonPatchDocument)
+        public async Task<IActionResult> UpdateRecordProperty(int id , JsonPatchDocument<RecordDTO> jsonPatchDocument)
         {
             if(id==0 || jsonPatchDocument == null)
             {
                 return BadRequest();
             }
 
-            var record =  _db.Records.AsNoTracking().FirstOrDefault(u => u.Id == id);
+            var record = await  _db.Records.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
             if(record == null)
             {
                 return NotFound();
@@ -167,7 +167,7 @@ namespace webapi.Controllers
             };
 
             _db.Records.Update(patch);
-            _db.SaveChanges();
+          await _db.SaveChangesAsync();
 
             return NoContent();
         }
