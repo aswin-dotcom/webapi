@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Xml.Linq;
 using webapi.Data;
 using webapi.Loging;
@@ -65,17 +66,16 @@ namespace webapi.Controllers
             {
                 return BadRequest();
             }
-            if(record.Id > 0)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError);
-            }
-            //record.Id = RecordStore.records.OrderByDescending(u => u.Id).FirstOrDefault().Id+1; 
+
+            record.Id = _db.Records.OrderByDescending(u => u.Id).FirstOrDefault().Id+1;
 
             Record rec = new Record()
             {
+                Id = record.Id,
                 Name = record.Name,
-                Standard =  record.Standard,
+                Standard = record.Standard,
                 City = record.City,
+                percentage = record.percentage
             };
 
 
@@ -137,16 +137,18 @@ namespace webapi.Controllers
                 return BadRequest();
             }
 
-            var record =  _db.Records.FirstOrDefault(u => u.Id == id);
+            var record =  _db.Records.AsNoTracking().FirstOrDefault(u => u.Id == id);
             if(record == null)
             {
                 return NotFound();
             }
             RecordDTO temp = new RecordDTO()
             {
+                Id =  record.Id,
                 Name = record.Name,
                 Standard = record.Standard,
                 City = record.City,
+                percentage =  record.percentage
 
             };
 
@@ -156,9 +158,11 @@ namespace webapi.Controllers
                 return BadRequest(ModelState);
             }
             Record patch = new() { 
+                Id  = temp.Id,
                 Name = temp.Name,
                 Standard = temp.Standard,
                 City= temp.City,
+                percentage =  temp.percentage
                 
             };
 
