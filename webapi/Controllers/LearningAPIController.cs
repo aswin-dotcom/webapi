@@ -7,6 +7,7 @@ using webapi.Data;
 using webapi.Loging;
 using webapi.Models;
 using webapi.Models.DTO;
+using webapi.Repository.IRepository;
 
 namespace webapi.Controllers
 {
@@ -15,12 +16,13 @@ namespace webapi.Controllers
     public class LearningAPIController:ControllerBase
     {
         private readonly ILogging _logger;
-        private readonly ApplicationDbContext _db;
+        //private readonly ApplicationDbContext _db;
         private readonly IMapper _mapper;
-        public LearningAPIController(ILogging logger,ApplicationDbContext db,IMapper mapper)
+        private readonly IRecordRepository _dbRecords;
+        public LearningAPIController(ILogging logger, IRecordRepository dbRecords, IMapper mapper)
         {
             _logger = logger;
-            _db = db;
+            _dbRecords = dbRecords;
             _mapper = mapper;
         }
 
@@ -29,8 +31,8 @@ namespace webapi.Controllers
         public async Task <ActionResult<IEnumerable<RecordDTO>>> GetRecords()
             {
             _logger.Log("Records got","");
-            IEnumerable<Record> recordlist = await _db.Records.ToListAsync();
-            return Ok(_mapper.Map<RecordDTO>(recordlist));
+            IEnumerable<Record> recordlist = await _dbRecords.GetAll();
+            return Ok(_mapper.Map<List<RecordDTO>>(recordlist));
             }
 
 
@@ -46,7 +48,7 @@ namespace webapi.Controllers
                 _logger.Log("Invalid number", "error");
                 return BadRequest();
             }
-             var record  = await  _db.Records.FirstOrDefaultAsync(r => r.Id == id);
+             var record  = await  _dbRecords.Get(r => r.Id == id,tracked:false);
             if (record == null)
             {
                 return NotFound();
@@ -61,7 +63,7 @@ namespace webapi.Controllers
         public async Task<ActionResult<RecordDTO>> PostRecord ([FromBody]RecordDTO record)
 
         {
-            if(await _db.Records.FirstOrDefaultAsync(u=>u.Name.ToLower()==record.Name.ToLower()) != null)
+            if(await _dbRecords.Get(u=>u.Name.ToLower()==record.Name.ToLower(),tracked:false) != null)
             {
                 ModelState.AddModelError("CustomError", "Record already exists!");
                 return BadRequest(ModelState);
@@ -71,7 +73,7 @@ namespace webapi.Controllers
                 return BadRequest();
             }
 
-            record.Id =  _db.Records.OrderByDescending(u => u.Id).FirstOrDefault().Id+1;
+            //record.Id =  _dbRecords.get(OrderByDescending(u => u.Id).FirstOrDefault().Id+1);
             var rec   =  _mapper.Map<Record>(record);
             //Record rec = new Record()
             //{
@@ -83,8 +85,8 @@ namespace webapi.Controllers
             //};
 
 
-           await  _db.Records.AddAsync(rec);
-          await   _db.SaveChangesAsync();
+           await _dbRecords.Create(rec);
+          await   _dbRecords.save();
             return CreatedAtRoute("GetRecords", new {id = record.Id },record);
             
         }
@@ -98,13 +100,13 @@ namespace webapi.Controllers
             {
                 return BadRequest();
             }
-            var record =await  _db.Records.FirstOrDefaultAsync(u => u.Id == id);
+            var record =await  _dbRecords.Get(u => u.Id == id);
             if (record == null)
             {
                 return NotFound();
             }
-             _db.Records.Remove(record);
-            await  _db.SaveChangesAsync();
+             await _dbRecords.Remove(record);
+            //await _dbRecords.save();
             return NoContent();
         }
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -126,8 +128,8 @@ namespace webapi.Controllers
             //existingRecord.Name = record.Name;
             //existingRecord.City = record.City;
             //existingRecord.Standard = record.Standard;
-            _db.Records.Update(updaterecord);
-            await _db.SaveChangesAsync();
+          await  _dbRecords.Update(updaterecord);
+            //await _dbRecords.save();
             return NoContent();
         }
 
@@ -135,50 +137,37 @@ namespace webapi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public async Task<IActionResult> UpdateRecordProperty(int id , JsonPatchDocument<RecordDTO> jsonPatchDocument)
+        public async Task<IActionResult> UpdateRecordProperty(int id, JsonPatchDocument<RecordDTO> jsonPatchDocument)
         {
-            if(id==0 || jsonPatchDocument == null)
+            if (id == 0 || jsonPatchDocument == null)
             {
                 return BadRequest();
             }
 
-            var record = await  _db.Records.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
-            if(record == null)
+            var record = await _dbRecords.Get(u => u.Id == id); // tracked by default
+
+            if (record == null)
             {
                 return NotFound();
             }
+
             var temp = _mapper.Map<RecordDTO>(record);
 
-            //RecordDTO temp = new RecordDTO()
-            //{
-            //    Id =  record.Id,
-            //    Name = record.Name,
-            //    Standard = record.Standard,
-            //    City = record.City,
-            //    percentage =  record.percentage
-
-            //};
-
             jsonPatchDocument.ApplyTo(temp, ModelState);
-            if(!ModelState.IsValid)
+
+            if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-            //Record patch = new() { 
-            //    Id  = temp.Id,
-            //    Name = temp.Name,
-            //    Standard = temp.Standard,
-            //    City= temp.City,
-            //    percentage =  temp.percentage
 
-            //};
-            var patch = _mapper.Map<Record>(temp);
+            // Map updated DTO values back to the tracked entity
+            _mapper.Map(temp, record); // This updates the existing tracked entity
 
-            _db.Records.Update(patch);
-          await _db.SaveChangesAsync();
+            await _dbRecords.save(); // No need to call Update()
 
             return NoContent();
         }
+
 
     }
 }
