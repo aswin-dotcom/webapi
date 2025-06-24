@@ -13,7 +13,7 @@ namespace webapi.Controllers
 {
     [Route("api/LearningAPI")]
     [ApiController]
-    public class LearningAPIController:ControllerBase
+    public class LearningAPIController : ControllerBase
     {
         private readonly ILogging _logger;
         protected APIresponsecs _response;
@@ -31,75 +31,120 @@ namespace webapi.Controllers
 
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task <ActionResult<APIresponsecs>> GetRecords()
+        public async Task<ActionResult<APIresponsecs>> GetRecords()
+        {
+            try
             {
-            _logger.Log("Records got","");
-            IEnumerable<Record> recordlist = await _dbRecords.GetAll();
+                _logger.Log("Records got", "");
+                IEnumerable<Record> recordlist = await _dbRecords.GetAll();
 
-            _response.StatusCode =  System.Net.HttpStatusCode.OK;
-            _response.Result = _mapper.Map<List<RecordDTO>>(recordlist);
-            return Ok(_response);
+                _response.StatusCode = System.Net.HttpStatusCode.OK;
+                _response.Result = _mapper.Map<List<RecordDTO>>(recordlist);
+                return Ok(_response);
+
             }
+            catch (Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.ErrorMessage  =  new List<string> { ex.ToString() };
 
 
-           [HttpGet("{id:int}",Name = "GetRecords")]
+            }
+            return _response;
+
+        }
+
+
+        [HttpGet("{id:int}", Name = "GetRecords")]
 
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
 
         public async Task<ActionResult<APIresponsecs>> GetRecord(int id)
-           {
-            if (id == 0) {
-                _logger.Log("Invalid number", "error");
-                return BadRequest();
-            }
-             var record  = await  _dbRecords.Get(r => r.Id == id,tracked:false);
-            if (record == null)
+
+        {
+            try
             {
-                return NotFound();
+                if (id == 0)
+                {
+                    _logger.Log("Invalid number", "error");
+                    _response.StatusCode =  System.Net.HttpStatusCode.BadRequest;
+                    
+                    return BadRequest(_response);
+                }
+                var record = await _dbRecords.Get(r => r.Id == id, tracked: false);
+                if (record == null)
+                {
+                    _response.StatusCode = System.Net.HttpStatusCode.NotFound;
+                    return NotFound(_response);
+                }
+                _response.StatusCode = System.Net.HttpStatusCode.OK;
+                _response.Result = _mapper.Map<RecordDTO>(record);
+
+
+                return Ok(_response);
+
             }
-            _response.StatusCode = System.Net.HttpStatusCode.OK;
-            _response.Result = _mapper.Map<RecordDTO>(record);
+            catch (Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.ErrorMessage = new List<string> { ex.ToString() };
+               
+            }
+            return _response;
 
-
-            return Ok(_response);
-           }
+        }
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<APIresponsecs>> PostRecord ([FromBody]RecordDTO record)
+        public async Task<ActionResult<APIresponsecs>> PostRecord([FromBody] RecordDTO record)
 
         {
-            if(await _dbRecords.Get(u=>u.Name.ToLower()==record.Name.ToLower(),tracked:false) != null)
+
+            try
             {
-                ModelState.AddModelError("CustomError", "Record already exists!");
-                return BadRequest(ModelState);
+                if (await _dbRecords.Get(u => u.Name.ToLower() == record.Name.ToLower(), tracked: false) != null)
+                {
+                    ModelState.AddModelError("CustomError", "Record already exists!");
+                    return BadRequest(ModelState);
+                }
+                if (record == null)
+                {
+                    _response.StatusCode = System.Net.HttpStatusCode.BadRequest;    
+                    return BadRequest(_response);
+                }
+
+                //record.Id =  _dbRecords.get(OrderByDescending(u => u.Id).FirstOrDefault().Id+1);
+                var rec = _mapper.Map<Record>(record);
+                //Record rec = new Record()
+                //{
+                //    Id = record.Id,
+                //    Name = record.Name,
+                //    Standard = record.Standard,
+                //    Standard = record.Standard,
+                //    City = record.City,
+                //    percentage = record.percentage
+                //};
+
+
+                await _dbRecords.Create(rec);
+                await _dbRecords.save();
+                _response.StatusCode = System.Net.HttpStatusCode.Created;
+                _response.Result = _mapper.Map<RecordDTO>(rec);
+                return CreatedAtRoute("GetRecords", new { id = rec.Id }, _response);
+
             }
-            if(record == null)
+            catch (Exception ex)
             {
-                return BadRequest();
+                _response.IsSuccess = false;
+                _response.ErrorMessage = new List<string> { ex.ToString() };
+                //return StatusCode(StatusCodes.Status500InternalServerError, _response);
             }
-
-            //record.Id =  _dbRecords.get(OrderByDescending(u => u.Id).FirstOrDefault().Id+1);
-            var rec   =  _mapper.Map<Record>(record);
-            //Record rec = new Record()
-            //{
-            //    Id = record.Id,
-            //    Name = record.Name,
-            //    Standard = record.Standard,
-            //    City = record.City,
-            //    percentage = record.percentage
-            //};
+            return _response;
 
 
-           await _dbRecords.Create(rec);
-          await   _dbRecords.save();
-            _response.StatusCode = System.Net.HttpStatusCode.Created;
-            _response.Result = _mapper.Map<RecordDTO>(rec);
-            return CreatedAtRoute("GetRecords", new {id = rec.Id },_response);
-            
         }
         [HttpDelete("{id:int}", Name = "DeleteRecord")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -107,21 +152,34 @@ namespace webapi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<APIresponsecs>> DeleteRecord(int id)
         {
-            if (id == 0)
+            try
             {
-                return BadRequest();
+                if (id == 0)
+                {
+                    _response .StatusCode = System.Net.HttpStatusCode.BadRequest;
+                    return BadRequest(_response);
+                }
+                var record = await _dbRecords.Get(u => u.Id == id);
+                if (record == null)
+                {
+                    _response.StatusCode = System.Net.HttpStatusCode.NotFound;
+                    return NotFound(_response);
+                }
+                await _dbRecords.Remove(record);
+                _response.StatusCode = System.Net.HttpStatusCode.NoContent;
+                //_response.Result = _mapper.Map<RecordDTO>(record);
+                _response.IsSuccess = true;
+                //await _dbRecords.save();
+                return Ok(_response);
+
             }
-            var record =await  _dbRecords.Get(u => u.Id == id);
-            if (record == null)
+            catch (Exception ex)
             {
-                return NotFound();
+                _response.IsSuccess = false;
+                _response.ErrorMessage = new List<string> { ex.ToString() };
+                //return StatusCode(StatusCodes.Status500InternalServerError, _response);
             }
-             await _dbRecords.Remove(record);
-            _response.StatusCode = System.Net.HttpStatusCode.NoContent;
-            //_response.Result = _mapper.Map<RecordDTO>(record);
-            _response.IsSuccess = true;    
-            //await _dbRecords.save();
-            return Ok(_response);
+            return _response;
         }
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -129,43 +187,58 @@ namespace webapi.Controllers
         [HttpPut("{id:int}", Name = "UpdateRecord")]
         public async Task<ActionResult<APIresponsecs>> UpdateRecord(int id, [FromBody] RecordDTO record)
         {
-            if (record == null || id != record.Id)
-            {
-                return BadRequest();
+            try{
+                if (record == null || id != record.Id)
+                {
+                    _response.StatusCode = System.Net.HttpStatusCode.BadRequest;
+                    return BadRequest(_response);
+                }
+                //var existingRecord = await  _db.Records.FirstOrDefaultAsync(u => u.Id == id);
+                //if (existingRecord == null)
+                //{
+                //    return NotFound();
+                //}
+                var updaterecord = _mapper.Map<Record>(record);
+                //existingRecord.Name = record.Name;
+                //existingRecord.City = record.City;
+                //existingRecord.Standard = record.Standard;
+                await _dbRecords.Update(updaterecord);
+                _response.StatusCode = System.Net.HttpStatusCode.NoContent;
+                _response.IsSuccess = true;
+                return Ok(_response);
+                //await _dbRecords.save();
+                //return NoContent();
             }
-            //var existingRecord = await  _db.Records.FirstOrDefaultAsync(u => u.Id == id);
-            //if (existingRecord == null)
-            //{
-            //    return NotFound();
-            //}
-            var updaterecord = _mapper.Map<Record>(record);
-            //existingRecord.Name = record.Name;
-            //existingRecord.City = record.City;
-            //existingRecord.Standard = record.Standard;
-          await  _dbRecords.Update(updaterecord);
-            _response.StatusCode = System.Net.HttpStatusCode.NoContent;
-            _response.IsSuccess = true;
-            return Ok(_response);
-            //await _dbRecords.save();
-            //return NoContent();
+            catch (Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.ErrorMessage = new List<string> { ex.ToString() };
+                //return StatusCode(StatusCodes.Status500InternalServerError, _response);
+            }
+            return _response;
+
+
         }
 
         [HttpPatch("{id:int}", Name = "UpdatePartialRecord")]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+
         public async Task<IActionResult> UpdateRecordProperty(int id, JsonPatchDocument<RecordDTO> jsonPatchDocument)
         {
             if (id == 0 || jsonPatchDocument == null)
             {
-                return BadRequest();
+                _response .StatusCode = System.Net.HttpStatusCode.BadRequest;
+                return BadRequest(_response);
             }
 
             var record = await _dbRecords.Get(u => u.Id == id); // tracked by default
 
             if (record == null)
             {
-                return NotFound();
+                _response.StatusCode = System.Net.HttpStatusCode.NotFound;
+                return NotFound(_response);
             }
 
             var temp = _mapper.Map<RecordDTO>(record);
